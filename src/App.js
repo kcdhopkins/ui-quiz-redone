@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react"
 import './styles.css'
 import ResultsView from "./ResultsView"
+import { getQuestions, postQuestions } from "./services/questionService"
 const App = () => {
     const [questions, setQuestions] = useState([])
     const [position, setPosition] = useState()
@@ -42,15 +43,8 @@ const App = () => {
         if(questions[position].type !== 'text'){
             return handleMutipleChoice()
         }
-
         return handleText()
     }, [position])
-
-    const fetchData = async ()=>{
-        const data = await fetch('http://localhost:4000/api/test/questions')
-        const result = await data.json()
-        setQuestions(result)
-    }
 
     const removeNullAndUncheckedFilter = ()=>{
         return inputRef.current.filter(input=> input !== null).filter((input)=>input.checked === true)
@@ -79,15 +73,7 @@ const App = () => {
     }
 
     const submitQuestions = async ()=> {
-        const results = await fetch('http://localhost:4000/api/check-answers', {
-            method: 'POST',
-            mode: 'cors',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(cAnswers)
-          })
-        const responseData = await results.json()
+        const responseData = await postQuestions(cAnswers)
         setResults(responseData)
         setResultsView(true)
     }
@@ -98,22 +84,22 @@ const App = () => {
         setPosition(0)
     }
 
+    const handleStart = async ()=>{
+        const result = await getQuestions()
+        setQuestions(result)
+        setPosition(0)
+    }
+    
     useEffect(()=>{
-        if((questions.length - 1) < position){
+        if((questions.length > 0) && questions.length - 1 < position){
             submitQuestions()
         }
     }, [position])
 
-    useEffect(()=>{
-        if(questions.length){
-            setPosition(0)
-        }
-    }, [questions])
-
     useEffect (()=>{
-        fetchData()
+        handleStart()
     }, [])
-    
+
     return (
     <div className="container-fluid">
         {resultsView && <ResultsView results = {results} resetView = {resetView}/>}
